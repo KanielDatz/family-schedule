@@ -481,7 +481,7 @@ function updateDailyView() {
         scheduleItems.sort((a, b) => a.time.localeCompare(b.time));
         
         scheduleItems.forEach(item => {
-            `;
+            const el = createScheduleDOMElement(item);
             scheduleContainer.appendChild(el);
         });
     }
