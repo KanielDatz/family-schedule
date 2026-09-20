@@ -134,9 +134,9 @@
                                     כדי למנוע תלות בשרתים ולשמור על האפליקציה רזה, תוכל להשתמש ב-ChatGPT או Claude. העלה לשם תמונה של מערכת השעות וכתוב להם:
                                 </p>
                                 <textarea readonly style="width:100%; height:80px; font-size:0.8rem; margin-bottom:10px; background:#edf2f7; border:none; padding:10px;" id="ai-prompt-text">
-Please read the attached school schedule image. Extract it into this JSON format. Day 0 is Sunday, Day 5 is Friday. Assume each lesson is 1 hour starting from 08:00 for lesson 1, 09:00 for lesson 2, etc., unless times are specified.
+Please read the attached school schedule image. Extract it into this JSON format. Day 0 is Sunday, Day 5 is Friday. Assume each lesson is 1 hour starting from 08:00 for lesson 1, etc., unless specified.
 Format: { "name": "ChildName", "schedule": [ { "day": 0, "time": "08:00", "subject": "Math" } ] }
-Output only raw valid JSON without markdown.
+IMPORTANT: Do not use quotation marks inside subject names. Output only raw valid JSON without markdown.
                                 </textarea>
                                 <button class="btn-secondary btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('ai-prompt-text').value); alert('הטקסט הועתק!')">העתק הנחיה (Prompt)</button>
                                 
