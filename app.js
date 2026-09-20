@@ -164,18 +164,51 @@ function setupEventListeners() {
                 currentModalChild.name = data.name;
             }
             
-            if (data.schedule && Array.isArray(data.schedule)) {
+            // Is this a full child export?
+            if (data.subjects && data.schedule && !Array.isArray(data.schedule)) {
+                // Full export format (from this app)
+                // Generate new IDs mapping to avoid collisions
+                const idMap = {};
+                data.subjects.forEach(s => {
+                    const newId = generateId();
+                    idMap[s.id] = newId;
+                    s.id = newId;
+                    currentModalChild.subjects.push(s);
+                });
+                
+                // Copy schedule with new IDs
+                Object.keys(data.schedule).forEach(day => {
+                    if(!currentModalChild.schedule[day]) currentModalChild.schedule[day] = [];
+                    data.schedule[day].forEach(entry => {
+                        currentModalChild.schedule[day].push({
+                            time: entry.time,
+                            subjectId: idMap[entry.subjectId] || entry.subjectId
+                        });
+                    });
+                });
+                
+                // Copy holidays
+                if (data.holidays) {
+                    currentModalChild.holidays = [...(currentModalChild.holidays || []), ...data.holidays];
+                }
+                
+                renderModalSubjects();
+                renderModalSchedule();
+                renderModalHolidays();
+                document.getElementById('ai-json-input').value = '';
+                alert('המערכת המלאה יובאה בהצלחה!');
+                
+            } else if (data.schedule && Array.isArray(data.schedule)) {
+                // AI Format
                 let addedCount = 0;
                 data.schedule.forEach(item => {
                     if (item.day >= 0 && item.day <= 6 && item.subject) {
-                        // Find or create subject
                         let subj = currentModalChild.subjects.find(s => s.name === item.subject);
                         if (!subj) {
                             subj = { id: generateId(), name: item.subject, items: [] };
                             currentModalChild.subjects.push(subj);
                         }
                         
-                        // Add to schedule
                         if (!currentModalChild.schedule[item.day]) currentModalChild.schedule[item.day] = [];
                         currentModalChild.schedule[item.day].push({
                             time: item.time || '08:00',
@@ -188,13 +221,64 @@ function setupEventListeners() {
                 renderModalSubjects();
                 renderModalSchedule();
                 document.getElementById('ai-json-input').value = '';
-                alert(`יובאו בהצלחה ${addedCount} שיעורים! עברו ללשוניות השונות כדי לראות את התוצאה.`);
+                alert(`יובאו בהצלחה ${addedCount} שיעורים מ-AI!`);
             } else {
-                alert('ה-JSON אינו מכיל מערכת שעות תקינה.');
+                alert('ה-JSON אינו תקין או אינו מזוהה.');
             }
         } catch(e) {
-            alert('שגיאה בקריאת ה-JSON. ודא שהעתקת אותו במלואו (ללא טקסט נוסף לפני או אחרי).');
+            alert('שגיאה בקריאת ה-JSON. ודא שהעתקת אותו במלואו.');
             console.error(e);
+        }
+    });
+
+    // Export processing
+    document.getElementById('btn-export-child').addEventListener('click', () => {
+        // Save current DOM state to object first so we export latest changes
+        const subjectRows = subjectsList.querySelectorAll('.subject-item');
+        let tempSubjects = [];
+        subjectRows.forEach(row => {
+            const id = row.dataset.id;
+            const name = row.querySelector('.subject-name').value;
+            const itemsStr = row.querySelector('.subject-items').value;
+            if(name.trim()) {
+                tempSubjects.push({
+                    id: id,
+                    name: name.trim(),
+                    items: itemsStr.split(',').map(s => s.trim()).filter(s => s)
+                });
+            }
+        });
+        
+        const tempHolidays = [];
+        holidaysList.querySelectorAll('.holiday-item').forEach(row => {
+            const date = row.querySelector('.holiday-date').value;
+            const type = row.querySelector('.holiday-type').value;
+            const desc = row.querySelector('.holiday-desc').value;
+            if(date) tempHolidays.push({ date, type, desc });
+        });
+
+        const exportData = {
+            name: childNameInput.value || currentModalChild.name,
+            color: childColorInput.value || currentModalChild.color,
+            subjects: tempSubjects,
+            schedule: currentModalChild.schedule,
+            holidays: tempHolidays
+        };
+        
+        const jsonStr = JSON.stringify(exportData, null, 2);
+        
+        if (navigator.share) {
+            navigator.share({
+                title: 'מערכת שעות: ' + exportData.name,
+                text: 'העתק את הקוד הבא לאפליקציית מערכת השעות:\n' + jsonStr
+            }).catch(err => {
+                // Fallback to clipboard
+                navigator.clipboard.writeText(jsonStr);
+                alert('הקוד הועתק! תוכל לשלוח אותו בוואטסאפ או במייל לחברים.');
+            });
+        } else {
+            navigator.clipboard.writeText(jsonStr);
+            alert('הקוד הועתק! תוכל לשלוח אותו בוואטסאפ או במייל לחברים.');
         }
     });
 
