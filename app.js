@@ -60,6 +60,7 @@ const scheduleContainer = document.getElementById('schedule-container');
 const packingListContainer = document.getElementById('packing-list-container');
 const filterChildren = document.querySelector('.filter-children');
 const packingForLabel = document.getElementById('packing-for-label');
+const btnToggleLayout = document.getElementById('btn-toggle-layout');
 
 // Settings Elements
 const packTimeInput = document.getElementById('pack-time');
@@ -82,6 +83,14 @@ const btnCopyHolidays = document.getElementById('btn-copy-holidays');
 const holidaysList = document.getElementById('holidays-list');
 const scheduleGrid = document.getElementById('schedule-grid');
 
+// Quick Edit Modal
+const modalQuickEdit = document.getElementById('quick-edit-modal');
+const btnCloseQuickEdit = document.getElementById('close-quick-edit');
+const qeChildId = document.getElementById('qe-child-id');
+const qeSubjectId = document.getElementById('qe-subject-id');
+const qeItems = document.getElementById('qe-items');
+const qeNotes = document.getElementById('qe-notes');
+const btnSaveQuickEdit = document.getElementById('btn-save-quick-edit');
 
 // --- Event Listeners ---
 function setupEventListeners() {
@@ -116,6 +125,12 @@ function setupEventListeners() {
         updateDailyView();
     });
 
+    btnToggleLayout.addEventListener('click', () => {
+        const current = localStorage.getItem('familyScheduleLayout') || 'mixed';
+        localStorage.setItem('familyScheduleLayout', current === 'mixed' ? 'columns' : 'mixed');
+        updateDailyView();
+    });
+
     packTimeInput.addEventListener('change', (e) => {
         appData.packTime = e.target.value;
         saveData();
@@ -128,6 +143,22 @@ function setupEventListeners() {
     btnCloseModal.addEventListener('click', closeChildModal);
     
     btnSaveChild.addEventListener('click', saveChildData);
+
+    // Quick Edit logic
+    btnCloseQuickEdit.addEventListener('click', () => modalQuickEdit.classList.add('view-hidden'));
+    btnSaveQuickEdit.addEventListener('click', () => {
+        const child = appData.children.find(c => c.id === qeChildId.value);
+        if (child) {
+            const subj = child.subjects.find(s => s.id === qeSubjectId.value);
+            if (subj) {
+                subj.items = qeItems.value.split(',').map(s => s.trim()).filter(s => s);
+                subj.notes = qeNotes.value.trim();
+                saveData();
+                modalQuickEdit.classList.add('view-hidden');
+                updateDailyView();
+            }
+        }
+    });
 
     // Tabs
     tabBtns.forEach(btn => {
@@ -231,6 +262,35 @@ function setupEventListeners() {
         }
     });
 
+    // Holiday AI Import
+    const btnProcessHolidayAi = document.getElementById('btn-process-holiday-ai');
+    if(btnProcessHolidayAi) {
+        btnProcessHolidayAi.addEventListener('click', () => {
+            const inputStr = document.getElementById('ai-holiday-json-input').value;
+            try {
+                const data = JSON.parse(inputStr);
+                if (Array.isArray(data)) {
+                    let added = 0;
+                    data.forEach(h => {
+                        if(h.date && h.type) {
+                            currentModalChild.holidays.push({
+                                date: h.date, type: h.type, desc: h.desc || ''
+                            });
+                            added++;
+                        }
+                    });
+                    renderModalHolidays();
+                    document.getElementById('ai-holiday-json-input').value = '';
+                    alert(`יובאו בהצלחה ${added} חופשות!`);
+                } else {
+                    alert('פורמט JSON לא תקין.');
+                }
+            } catch(e) {
+                alert('שגיאה בקריאת ה-JSON.');
+            }
+        });
+    }
+
     // Export processing
     document.getElementById('btn-export-child').addEventListener('click', () => {
         // Save current DOM state to object first so we export latest changes
@@ -240,11 +300,13 @@ function setupEventListeners() {
             const id = row.dataset.id;
             const name = row.querySelector('.subject-name').value;
             const itemsStr = row.querySelector('.subject-items').value;
+            const notesStr = row.querySelector('.subject-notes').value;
             if(name.trim()) {
                 tempSubjects.push({
                     id: id,
                     name: name.trim(),
-                    items: itemsStr.split(',').map(s => s.trim()).filter(s => s)
+                    items: itemsStr.split(',').map(s => s.trim()).filter(s => s),
+                    notes: notesStr.trim()
                 });
             }
         });
@@ -366,8 +428,11 @@ function updateDailyView() {
                     scheduleItems.push({
                         time: entry.time || '',
                         subjectName: subject.name,
+                        subjectId: subject.id,
+                        childId: child.id,
                         childName: child.name,
-                        color: child.color
+                        color: child.color,
+                        notes: subject.notes
                     });
                     
                     // Add items to packing list
@@ -385,25 +450,37 @@ function updateDailyView() {
     });
 
     // 4. Render Schedule
-    // Sort by time
-    scheduleItems.sort((a, b) => a.time.localeCompare(b.time));
-    
     scheduleContainer.innerHTML = '';
+    const layout = localStorage.getItem('familyScheduleLayout') || 'mixed';
+    
     if (scheduleItems.length === 0) {
         scheduleContainer.innerHTML = '<div class="empty-state">אין לו"ז ליום זה</div>';
+        scheduleContainer.classList.remove('layout-columns');
+    } else if (layout === 'columns' && !activeChildFilter) {
+        scheduleContainer.classList.add('layout-columns');
+        
+        // Group by child
+        appData.children.forEach(child => {
+            const childItems = scheduleItems.filter(i => i.childName === child.name).sort((a, b) => a.time.localeCompare(b.time));
+            if (childItems.length > 0) {
+                const col = document.createElement('div');
+                col.className = 'child-column';
+                col.innerHTML = `<div class="child-column-header" style="background:${child.color}">${child.name}</div>`;
+                
+                childItems.forEach(item => {
+                    const el = createScheduleDOMElement(item);
+                    col.appendChild(el);
+                });
+                scheduleContainer.appendChild(col);
+            }
+        });
+        
     } else {
+        // Mixed layout
+        scheduleContainer.classList.remove('layout-columns');
+        scheduleItems.sort((a, b) => a.time.localeCompare(b.time));
+        
         scheduleItems.forEach(item => {
-            const el = document.createElement('div');
-            el.className = 'schedule-item';
-            el.style.borderRightColor = item.color;
-            if (item.isHoliday) el.style.background = '#fff8e1';
-            
-            el.innerHTML = `
-                <div class="item-time">${item.time}</div>
-                <div class="item-details">
-                    <div class="item-subject">${item.subjectName}</div>
-                    <div class="item-child">${item.childName}</div>
-                </div>
             `;
             scheduleContainer.appendChild(el);
         });
@@ -433,6 +510,42 @@ function updateDailyView() {
             packingListContainer.appendChild(li);
         });
     }
+}
+
+function createScheduleDOMElement(item) {
+    const el = document.createElement('div');
+    el.className = 'schedule-item';
+    el.style.borderRightColor = item.color;
+    if (item.isHoliday) el.style.background = '#fff8e1';
+    
+    const notesHtml = item.notes ? `<span class="subject-notes-display">${item.notes}</span>` : '';
+    
+    el.innerHTML = `
+        <div class="item-time">${item.time}</div>
+        <div class="item-details" style="flex:1; cursor:${item.subjectId ? 'pointer' : 'default'}">
+            <div class="item-subject">${item.subjectName}</div>
+            ${notesHtml}
+            <div class="item-child">${item.childName}</div>
+        </div>
+    `;
+    
+    if (item.subjectId && !item.isHoliday) {
+        el.addEventListener('click', () => {
+            document.getElementById('qe-subject-name').textContent = item.subjectName;
+            document.getElementById('qe-child-name').textContent = item.childName;
+            document.getElementById('qe-child-id').value = item.childId;
+            document.getElementById('qe-subject-id').value = item.subjectId;
+            
+            const child = appData.children.find(c => c.id === item.childId);
+            const subj = child.subjects.find(s => s.id === item.subjectId);
+            document.getElementById('qe-items').value = subj.items ? subj.items.join(', ') : '';
+            document.getElementById('qe-notes').value = subj.notes || '';
+            
+            document.getElementById('quick-edit-modal').classList.remove('view-hidden');
+        });
+    }
+    
+    return el;
 }
 
 function renderFilters() {
@@ -470,13 +583,15 @@ function renderSettings() {
         div.style.cursor = 'pointer';
         div.innerHTML = `
             <div class="item-details" style="display:flex; justify-content:space-between; align-items:center;">
-                <div class="item-subject">${child.name}</div>
+                <div class="item-subject" style="flex:1"><i class="fas fa-pencil-alt" style="font-size:0.8rem; color:var(--text-muted); margin-left:8px;"></i> ${child.name}</div>
                 <button class="icon-btn btn-delete-child" data-id="${child.id}"><i class="fas fa-trash" style="color:var(--danger)"></i></button>
             </div>
         `;
         // Edit on click
-        div.querySelector('.item-subject').addEventListener('click', () => {
-            openChildModal(child);
+        div.addEventListener('click', (e) => {
+            if(!e.target.closest('.btn-delete-child')) {
+                openChildModal(child);
+            }
         });
         
         // Delete
@@ -536,11 +651,13 @@ function saveChildData() {
         const id = row.dataset.id;
         const name = row.querySelector('.subject-name').value;
         const itemsStr = row.querySelector('.subject-items').value;
+        const notesStr = row.querySelector('.subject-notes') ? row.querySelector('.subject-notes').value : '';
         if(name.trim()) {
             currentModalChild.subjects.push({
                 id: id,
                 name: name.trim(),
-                items: itemsStr.split(',').map(s => s.trim()).filter(s => s)
+                items: itemsStr.split(',').map(s => s.trim()).filter(s => s),
+                notes: notesStr.trim()
             });
         }
     });
@@ -581,12 +698,15 @@ function renderModalSubjects() {
     });
 }
 
-function addSubjectRow(sub = {id: generateId(), name:'', items:[]}) {
+function addSubjectRow(sub = {id: generateId(), name:'', items:[], notes:''}) {
     const tpl = document.getElementById('tpl-subject').content.cloneNode(true);
     const div = tpl.querySelector('.subject-item');
     div.dataset.id = sub.id;
     div.querySelector('.subject-name').value = sub.name;
-    div.querySelector('.subject-items').value = sub.items.join(', ');
+    div.querySelector('.subject-items').value = (sub.items || []).join(', ');
+    if (div.querySelector('.subject-notes')) {
+        div.querySelector('.subject-notes').value = sub.notes || '';
+    }
     
     div.querySelector('.btn-delete-subject').addEventListener('click', () => {
         div.remove();

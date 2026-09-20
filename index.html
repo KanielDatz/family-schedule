@@ -21,7 +21,10 @@
                     <span id="display-day-name" class="day-name">היום</span>
                     <span id="display-date" class="full-date">1 ספטמבר</span>
                 </div>
-                <button id="btn-next-day" class="icon-btn"><i class="fas fa-chevron-left"></i></button>
+                <div style="display: flex; gap: 10px;">
+                    <button id="btn-toggle-layout" class="icon-btn" title="החלף תצוגה"><i class="fas fa-columns"></i></button>
+                    <button id="btn-next-day" class="icon-btn"><i class="fas fa-chevron-left"></i></button>
+                </div>
             </div>
             <button id="btn-home" class="icon-btn hidden" aria-label="בית"><i class="fas fa-home"></i></button>
         </header>
@@ -118,7 +121,19 @@
                                     <button id="btn-copy-holidays" class="btn-secondary btn-sm"><i class="fas fa-copy"></i> שכפל מילד אחר</button>
                                     <button id="btn-add-holiday" class="btn-primary btn-sm"><i class="fas fa-plus"></i> הוסף תאריך</button>
                                 </div>
-                                <div id="holidays-list"></div>
+                                <div id="holidays-list" style="margin-bottom: 15px;"></div>
+                                
+                                <hr style="margin: 20px 0; border: 0; border-top: 1px solid #e2e8f0;">
+                                <h4 style="margin-bottom:10px;">ייבוא לוח חופשות (AI)</h4>
+                                <p style="font-size:0.8rem; margin-bottom:10px;">העלה תמונה של לוח החופשות ל-ChatGPT או Claude יחד עם ההנחיה הבאה:</p>
+                                <textarea readonly style="width:100%; height:60px; font-size:0.8rem; margin-bottom:10px; background:#edf2f7; border:none; padding:10px;" id="ai-holiday-prompt-text">
+Please read the attached holiday schedule. Extract it into this JSON format:
+[ { "date": "YYYY-MM-DD", "type": "holiday", "desc": "Hanukkah" } ]
+Output only raw valid JSON without markdown.
+                                </textarea>
+                                <button class="btn-secondary btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('ai-holiday-prompt-text').value); alert('הטקסט הועתק!')" style="margin-bottom:10px;">העתק הנחיה</button>
+                                <textarea id="ai-holiday-json-input" placeholder="הדבק כאן את קוד ה-JSON..." style="width:100%; height:80px; margin-bottom:10px; font-family:monospace; font-size:16px;" dir="ltr"></textarea>
+                                <button id="btn-process-holiday-ai" class="btn-primary" style="width:100%;"><i class="fas fa-magic"></i> ייבא חופשות</button>
                             </div>
 
                             <!-- IMPORT/EXPORT TAB -->
@@ -156,11 +171,38 @@ IMPORTANT: Do not use quotation marks inside subject names. Output only raw vali
         </main>
     </div>
 
+    <!-- Quick Edit Modal -->
+    <div class="modal view-hidden" id="quick-edit-modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h2>עריכה מהירה: <span id="qe-subject-name"></span></h2>
+                <button id="close-quick-edit" class="icon-btn"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 0.9rem; color: gray; margin-bottom: 15px;">ילד: <span id="qe-child-name"></span></p>
+                <input type="hidden" id="qe-child-id">
+                <input type="hidden" id="qe-subject-id">
+                <div class="form-group">
+                    <label>ציוד חובה (מופרד בפסיקים):</label>
+                    <input type="text" id="qe-items" placeholder="לדוגמה: מחברת משבצות, סרגל">
+                </div>
+                <div class="form-group">
+                    <label>הערות קבועות לשיעור (יוצגו במערכת):</label>
+                    <input type="text" id="qe-notes" placeholder="לדוגמה: תלבושת ספורט / להביא 5 שקלים">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" id="btn-save-quick-edit">שמור שינויים</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Templates for dynamic JS injection -->
     <template id="tpl-subject">
-        <div class="subject-item">
-            <input type="text" class="subject-name" placeholder="שם מקצוע/חוג">
-            <input type="text" class="subject-items" placeholder="ציוד (מופרד בפסיק)">
+        <div class="subject-item" style="flex-wrap: wrap;">
+            <input type="text" class="subject-name" placeholder="שם מקצוע/חוג" style="flex: 1 1 30%;">
+            <input type="text" class="subject-items" placeholder="ציוד (מופרד בפסיק)" style="flex: 1 1 30%;">
+            <input type="text" class="subject-notes" placeholder="הערות קבועות" style="flex: 1 1 30%;">
             <button class="icon-btn btn-delete-subject"><i class="fas fa-trash"></i></button>
         </div>
     </template>

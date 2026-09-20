@@ -364,3 +364,47 @@ main {
 /* Utilities */
 .hidden { display: none !important; }
 .empty-state { text-align: center; color: var(--text-muted); padding: 30px; font-style: italic; }
+
+/* Layout Columns */
+.layout-columns {
+    flex-direction: row !important;
+    overflow-x: auto;
+    align-items: flex-start;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 20px;
+}
+.child-column {
+    flex: 1 0 30%;
+    min-width: 250px;
+    scroll-snap-align: start;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.child-column-header {
+    font-weight: 600;
+    text-align: center;
+    padding: 8px;
+    border-radius: 8px;
+    margin-bottom: 5px;
+    color: white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+.child-settings-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid #edf2f7;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.child-settings-item:hover {
+    background: #f8fafc;
+}
+.child-settings-actions {
+    display: flex;
+    gap: 10px;
+}
+.item-subject-container { flex: 1; }
+.subject-notes-display { font-size: 0.85rem; color: var(--text-muted); margin-top: 4px; display: block; font-style: italic; }
