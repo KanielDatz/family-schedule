@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>מערכת שעות משפחתית</title>
+    <link rel="manifest" href="manifest.json">
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="app-header glass">
+            <button id="btn-settings" class="icon-btn" aria-label="הגדרות"><i class="fas fa-cog"></i></button>
+            <div class="date-selector">
+                <button id="btn-prev-day" class="icon-btn"><i class="fas fa-chevron-right"></i></button>
+                <div class="current-date">
+                    <span id="display-day-name" class="day-name">היום</span>
+                    <span id="display-date" class="full-date">1 ספטמבר</span>
+                </div>
+                <button id="btn-next-day" class="icon-btn"><i class="fas fa-chevron-left"></i></button>
+            </div>
+            <button id="btn-home" class="icon-btn hidden" aria-label="בית"><i class="fas fa-home"></i></button>
+        </header>
+
+        <!-- MAIN CONTENT: DAILY VIEW -->
+        <main id="view-daily" class="view-active">
+            <div class="filter-children glass">
+                <!-- Child filters will be injected here -->
+            </div>
+
+            <div class="schedule-timeline" id="schedule-container">
+                <!-- Schedule items will be injected here -->
+                <div class="empty-state">אין לו"ז ליום זה</div>
+            </div>
+
+            <div class="packing-list-section glass-bottom">
+                <div class="packing-header">
+                    <h3><i class="fas fa-backpack"></i> ציוד לארוז</h3>
+                    <span id="packing-for-label" class="badge">למחר</span>
+                </div>
+                <ul class="packing-list" id="packing-list-container">
+                    <!-- Packing items will be injected here -->
+                </ul>
+            </div>
+        </main>
+
+        <!-- SETTINGS VIEW -->
+        <main id="view-settings" class="view-hidden">
+            <div class="settings-container">
+                <h2>הגדרות</h2>
+                
+                <div class="settings-section glass">
+                    <h3>כללי</h3>
+                    <div class="form-group">
+                        <label for="pack-time">שעת אריזת תיק (ממנה יוצג הציוד למחר):</label>
+                        <input type="time" id="pack-time" value="20:00">
+                    </div>
+                </div>
+
+                <div class="settings-section glass">
+                    <div class="section-header">
+                        <h3>ילדים</h3>
+                        <button id="btn-add-child" class="btn-primary btn-sm"><i class="fas fa-plus"></i> הוסף ילד</button>
+                    </div>
+                    <div id="settings-children-list" class="children-list">
+                        <!-- Children settings will be injected here -->
+                    </div>
+                </div>
+
+                <!-- CHILD EDIT MODAL -->
+                <div id="modal-edit-child" class="modal view-hidden">
+                    <div class="modal-content glass">
+                        <div class="modal-header">
+                            <h3 id="child-modal-title">ערוך ילד</h3>
+                            <button id="btn-close-child-modal" class="icon-btn"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label for="child-name">שם הילד</label>
+                                <input type="text" id="child-name">
+                            </div>
+                            <div class="form-group">
+                                <label for="child-color">צבע</label>
+                                <input type="color" id="child-color" value="#4CAF50">
+                            </div>
+
+                            <!-- TABS FOR CHILD SETTINGS -->
+                            <div class="child-tabs">
+                                <button class="tab-btn active" data-tab="subjects">מקצועות וציוד</button>
+                                <button class="tab-btn" data-tab="schedule">מערכת שעות</button>
+                                <button class="tab-btn" data-tab="holidays">חופשות/ימים קצרים</button>
+                                <button class="tab-btn" data-tab="import"><i class="fas fa-robot"></i> ייבוא AI</button>
+                            </div>
+
+                            <!-- SUBJECTS TAB -->
+                            <div id="tab-subjects" class="tab-content active">
+                                <div class="action-bar">
+                                    <button id="btn-copy-subjects" class="btn-secondary btn-sm"><i class="fas fa-copy"></i> שכפל מילד אחר</button>
+                                    <button id="btn-add-subject" class="btn-primary btn-sm"><i class="fas fa-plus"></i> הוסף מקצוע</button>
+                                </div>
+                                <div id="subjects-list"></div>
+                            </div>
+
+                            <!-- SCHEDULE TAB -->
+                            <div id="tab-schedule" class="tab-content">
+                                <div class="schedule-grid" id="schedule-grid">
+                                    <!-- Schedule editor -->
+                                </div>
+                            </div>
+
+                            <!-- HOLIDAYS TAB -->
+                            <div id="tab-holidays" class="tab-content">
+                                <div class="action-bar">
+                                    <button id="btn-copy-holidays" class="btn-secondary btn-sm"><i class="fas fa-copy"></i> שכפל מילד אחר</button>
+                                    <button id="btn-add-holiday" class="btn-primary btn-sm"><i class="fas fa-plus"></i> הוסף תאריך</button>
+                                </div>
+                                <div id="holidays-list"></div>
+                            </div>
+
+                            <!-- AI IMPORT TAB -->
+                            <div id="tab-import" class="tab-content">
+                                <p style="font-size:0.9rem; margin-bottom:10px;">
+                                    כדי למנוע תלות בשרתים ולשמור על האפליקציה רזה, תוכל להשתמש ב-ChatGPT או Claude. העלה לשם תמונה של מערכת השעות וכתוב להם:
+                                </p>
+                                <textarea readonly style="width:100%; height:80px; font-size:0.8rem; margin-bottom:10px; background:#edf2f7; border:none; padding:10px;" id="ai-prompt-text">
+Please read the attached school schedule image. Extract it into this JSON format. Day 0 is Sunday, Day 5 is Friday. Assume each lesson is 1 hour starting from 08:00 for lesson 1, 09:00 for lesson 2, etc., unless times are specified.
+Format: { "name": "ChildName", "schedule": [ { "day": 0, "time": "08:00", "subject": "Math" } ] }
+Output only raw valid JSON without markdown.
+                                </textarea>
+                                <button class="btn-secondary btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('ai-prompt-text').value); alert('הטקסט הועתק!')">העתק הנחיה (Prompt)</button>
+                                
+                                <h4 style="margin-top:20px; margin-bottom:10px;">הדבק כאן את התשובה שקיבלת:</h4>
+                                <textarea id="ai-json-input" placeholder='{"name": "...", "schedule": [...]}' style="width:100%; height:150px; font-family:monospace; padding:10px; direction:ltr;"></textarea>
+                                <button id="btn-process-ai" class="btn-primary" style="margin-top:10px; width:100%;">ייבא מערכת שעות</button>
+                            </div>
+
+                        </div>
+                        <div class="modal-footer">
+                            <button id="btn-save-child" class="btn-primary">שמור</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Templates for dynamic JS injection -->
+    <template id="tpl-subject">
+        <div class="subject-item">
+            <input type="text" class="subject-name" placeholder="שם מקצוע/חוג">
+            <input type="text" class="subject-items" placeholder="ציוד (מופרד בפסיק)">
+            <button class="icon-btn btn-delete-subject"><i class="fas fa-trash"></i></button>
+        </div>
+    </template>
+
+    <script src="app.js"></script>
+</body>
+</html>
