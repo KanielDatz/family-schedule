@@ -77,6 +77,7 @@ const tabBtns = document.querySelectorAll('.tab-btn');
 const tabContents = document.querySelectorAll('.tab-content');
 const subjectsList = document.getElementById('subjects-list');
 const btnAddSubject = document.getElementById('btn-add-subject');
+const btnAddSubjectBottom = document.getElementById('btn-add-subject-bottom');
 const btnCopySubjects = document.getElementById('btn-copy-subjects');
 const btnAddHoliday = document.getElementById('btn-add-holiday');
 const btnCopyHolidays = document.getElementById('btn-copy-holidays');
@@ -173,6 +174,15 @@ function setupEventListeners() {
     btnAddSubject.addEventListener('click', () => {
         addSubjectRow();
     });
+    
+    if (btnAddSubjectBottom) {
+        btnAddSubjectBottom.addEventListener('click', () => {
+            addSubjectRow();
+            // Scroll to the bottom of the modal body when added
+            const modalBody = document.querySelector('.modal-body');
+            setTimeout(() => { modalBody.scrollTop = modalBody.scrollHeight; }, 50);
+        });
+    }
     
     btnCopySubjects.addEventListener('click', () => {
         copyDataDialog('subjects');
